@@ -59,7 +59,7 @@ Notre vidéo n'a pas de vérité terrain (on ne connaît pas le vrai mouvement d
 
 ## 2. RAFT
 
-> *RAFT: Recurrent All-Pairs Field Transforms for Optical Flow*, Z. Teed et J. Deng, ECCV 2020.
+> *RAFT: Recurrent All-Pairs Field Transforms for Optical Flow*, Z. Teed et J. Deng, ECCV 2020 ([arXiv:2003.12039](https://arxiv.org/abs/2003.12039)).
 
 RAFT a trois blocs :
 1. **Les encodeurs** décrivent chaque bloc de 8 × 8 pixels par 256 nombres, et un 2ᵉ encodeur décrit le contexte de l'image 1.
@@ -78,6 +78,56 @@ RAFT a trois blocs :
 </p>
 </details>
 
+### Les formules
+
+**Le volume de corrélation** : g(I₁) et g(I₂) sont les caractéristiques des deux images (résolution 1/8, D = 256). On compare chaque pixel (i, j) de l'image 1 à chaque pixel (k, l) de l'image 2 par un produit scalaire :
+
+$$
+C_{ijkl} = \frac{1}{\sqrt{D}} \sum_{h=1}^{D} g(I_1)_{ijh}\, g(I_2)_{klh}, \qquad C \in \mathbb{R}^{\frac{H}{8} \times \frac{W}{8} \times \frac{H}{8} \times \frac{W}{8}}
+$$
+
+On construit ensuite une **pyramide à 4 niveaux** en moyennant les deux dernières dimensions (noyaux 1, 2, 4, 8), pour voir aussi les grands déplacements. À chaque itération, RAFT ne lit qu'une fenêtre de 9 × 9 (rayon r = 4) autour de la position estimée, dans chaque niveau.
+
+**La mise à jour (ConvGRU)** : xₜ regroupe les corrélations lues, le flux actuel et le contexte de l'image 1.
+
+$$
+z_t = \sigma\big(\mathrm{Conv}_{3\times3}([h_{t-1}, x_t], W_z)\big), \qquad r_t = \sigma\big(\mathrm{Conv}_{3\times3}([h_{t-1}, x_t], W_r)\big)
+$$
+
+$$
+\tilde h_t = \tanh\big(\mathrm{Conv}_{3\times3}([r_t \odot h_{t-1}, x_t], W_h)\big), \qquad h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t
+$$
+
+Deux convolutions prédisent la correction Δf à partir de hₜ, puis f₍ₖ₊₁₎ = fₖ + Δf. Le flux à 1/8 est enfin remis à pleine résolution par un **sur-échantillonnage convexe** (×8, chaque pixel est une combinaison de ses 9 voisins).
+
+**La perte** : on compare au vrai flux le flux de **chaque** itération, avec plus de poids sur les dernières (γ = 0,8, N itérations) :
+
+$$
+\mathcal{L} = \sum_{i=1}^{N} \gamma^{N-i} \, \lVert f_{gt} - f_i \rVert_1
+$$
+
+### Entraînement et données
+
+1. **FlyingChairs** (images synthétiques de chaises) : 100 k itérations, batch de 12.
+2. **FlyingThings3D** (objets 3D synthétiques) : 100 k itérations, batch de 6. Ce modèle s'appelle « C+T » (checkpoint `raft-things`).
+3. **Fine-tuning Sintel** : 100 k itérations sur un mélange Sintel + KITTI-2015 + HD1K. C'est le checkpoint `raft-sintel` utilisé sur notre vidéo.
+4. **Fine-tuning KITTI** : 50 k itérations de plus, à partir du modèle Sintel (checkpoint `raft-kitti`).
+
+Optimiseur AdamW, 2 GPU 2080 Ti. En évaluation, les auteurs utilisent 32 itérations sur Sintel et 24 sur KITTI.
+
+### Résultats publiés
+
+| Entraînement | Évaluation | RAFT (2 images) | RAFT (warm-start) |
+|---|---|---|---|
+| C+T (généralisation) | Sintel train, Clean / Final (EPE) | 1,43 / 2,71 | – |
+| C+T (généralisation) | KITTI-15 train, EPE / Fl-all | 5,04 / 17,4 % | – |
+| C+T+S+K+H (fine-tuning) | Sintel test, Clean / Final (EPE) | 1,94 / 3,18 | **1,61 / 2,86** |
+| C+T+S+K+H (fine-tuning) | KITTI-15 test, Fl-all | **5,10 %** | – |
+
+- En 2020, RAFT est 1er sur Sintel (−30 % d'erreur sur Final par rapport au meilleur résultat publié) et 1er sur KITTI.
+- Le **warm-start** (initialiser avec le flux projeté de la paire précédente) n'est possible que parce que RAFT travaille à une seule résolution. Il gagne environ 0,3 px sur Sintel.
+- Les ablations du papier montrent l'importance du ConvGRU (EPE 1,63 contre 2,04 avec de simples convolutions), du partage des poids entre itérations et de la corrélation sur **toutes** les paires de pixels (1,63 contre 2,91 si on la limite à ±32 px).
+
 ### RAFT sur notre vidéo
 
 | Mesure (GPU Tesla T4) | Valeur |
@@ -90,13 +140,20 @@ RAFT a trois blocs :
 | Middlebury | EPE 0,28 px · Fl-all 0,94 % |
 
 <p align="center">
-  <img src="documentation/figures/raft_resultat.png" width="640" alt="Flux de RAFT sur notre vidéo">
+  <img src="documentation/figures/RAFT/RAFT_frames_flow_heatmaps.png" width="640" alt="Flux de RAFT sur notre vidéo">
 </p>
 
 - La voiture est segmentée proprement : un seul mouvement vers le haut (violet), et le fond reste immobile (blanc).
 - Avec **12 itérations au lieu de 20**, la qualité est la même, et le temps passe de 713 à 500 ms (−30 %).
 - **RAFT-small** (1 M paramètres) est 4 fois plus rapide (164 ms), mais un peu moins précis.
 - 45 % de la mémoire sert à la matrice de corrélation : doubler la résolution multiplie ce coût par environ 16.
+- Le **warm-start** n'apporte rien sur notre vidéo (erreur photométrique 0,407 en 2 images, 0,415 avec warm-start) ni sur Middlebury (EPE 0,282 contre 0,285) : le mouvement est faible et régulier, l'initialisation à zéro suffit.
+
+<p align="center">
+  <img src="documentation/figures/RAFT/RAFT_correlation_volume.png" width="49%" alt="Volume de corrélation de RAFT pour un pixel">
+  <img src="documentation/figures/RAFT/RAFT_iterations_convergence.png" width="49%" alt="Convergence des itérations de RAFT">
+  <br><sub>À gauche : la corrélation d'un pixel de la voiture avec toute l'image suivante, et la pyramide. À droite : la correction devient négligeable après quelques itérations.</sub>
+</p>
 
 <p align="center">
   <img src="documentation/slides/14_raft_compromis.png" width="49%" alt="Compromis vitesse / qualité">
@@ -107,7 +164,7 @@ RAFT a trois blocs :
 
 ## 3. MemFlow
 
-> *MemFlow: Optical Flow Estimation and Prediction with Memory*, Q. Dong et Y. Fu, CVPR 2024.
+> *MemFlow: Optical Flow Estimation and Prediction with Memory*, Q. Dong et Y. Fu, CVPR 2024 ([arXiv:2404.04808](https://arxiv.org/abs/2404.04808)).
 
 MemFlow reprend RAFT et ajoute une **mémoire** : une région qui ressemble à une région déjà vue peut réutiliser le mouvement trouvé avant.
 1. **Les extracteurs** décrivent les images t et t+1, calculent les corrélations et construisent une représentation du mouvement et du contexte.
@@ -133,6 +190,40 @@ $$
   <img src="documentation/slides/22_memflow_memoire_attention.png" width="49%" alt="Attention de la mémoire">
 </p>
 
+**Les détails de la formule et des blocs :**
+- Les encodeurs (caractéristiques et contexte) ont la même structure que dans RAFT : 6 blocs résiduels, sortie à 1/8 de la résolution, et la même corrélation 4D que RAFT.
+- **L'encodeur de mouvement** (6 blocs SKBlock, de grands noyaux de convolution) transforme le flux actuel et les corrélations lues en une caractéristique de mouvement f_m.
+- **α** est un poids appris, initialisé à 0 : au début de l'entraînement, le modèle se comporte comme sans mémoire, puis il apprend combien utiliser le passé.
+- Le terme log₍n_avg₎(L + HW) adapte l'attention à la **résolution** : avec plus de pixels, le softmax reste aussi « net » qu'à la résolution d'entraînement.
+- **La mise à jour** est un GRU avec 2 SKBlocks : il reçoit le contexte, le mouvement f_m et le mouvement enrichi par la mémoire f_am, et prédit la correction du flux.
+- **La taille de la mémoire** : par défaut, on ne garde que l'image précédente (l_max = 1). Les auteurs ont testé des mémoires plus longues, sans gain.
+- **MemFlow-T** remplace les encodeurs par un transformer pré-entraîné sur ImageNet (Twins-SVT). Nous utilisons la version de base, `MemFlowNet_sintel`.
+
+### Entraînement et données
+
+1. **Pré-entraînement à 2 images** : FlyingChairs (120 k itérations, batch de 8), puis FlyingThings3D (150 k itérations, batch de 6).
+2. **Entraînement vidéo à 3 images** (batch de 8) : 600 k itérations sur FlyingThings3D. C'est ici que la mémoire apprend à servir.
+3. **Fine-tuning Sintel** : 600 k itérations sur un mélange Sintel + KITTI + HD1K + FlyingThings3D (checkpoint `MemFlowNet_sintel`, utilisé sur notre vidéo).
+4. **Fine-tuning KITTI** (40 k itérations) et **Spring** (400 k itérations) pour les versions dédiées à ces benchmarks.
+
+Optimiseur AdamW, 2 GPU A100. La perte est celle de RAFT (somme sur 12 itérations, avec un poids γ = 0,85 sur les dernières). En inférence, 15 itérations par défaut.
+
+### Résultats publiés
+
+| Entraînement | Évaluation | RAFT | MemFlow | MemFlow-T |
+|---|---|---|---|---|
+| C+T (généralisation) | Sintel train, Clean / Final (EPE) | 1,43 / 2,71 | 0,93 / 2,08 | **0,85 / 2,06** |
+| C+T (généralisation) | KITTI-15 train, EPE / Fl-all | 5,04 / 17,4 % | 3,88 / 13,7 % | **3,38 / 12,8 %** |
+| Fine-tuning | Sintel test, Clean / Final (EPE) | 1,61 / 2,86 * | **1,05** / 1,91 | 1,08 / **1,84** |
+| Fine-tuning | KITTI-15 test, Fl-all | 5,10 % | 4,10 % | **3,88 %** |
+| + Spring | Spring test, EPE / Fl | – | **0,471 / 1,42** | – |
+
+\* RAFT avec warm-start.
+
+- Par rapport à RAFT, MemFlow réduit l'erreur d'environ **35 %** sur Sintel test (Clean) et de 20 % sur KITTI.
+- À sa sortie, MemFlow est **1er sur Spring** (1080p). VideoFlow, une méthode à 5 images, n'y tourne même pas : il dépasse les 80 Go de mémoire d'une A100.
+- Vitesse annoncée : 5,6 images/s sur A100 en 1024 × 436, et 14,5 images/s avec seulement 5 itérations.
+
 ### MemFlow sur notre vidéo
 
 | Mesure (GPU Tesla T4) | Valeur |
@@ -145,7 +236,7 @@ $$
 | Middlebury | EPE 0,214 px · Fl-all 0,518 % |
 
 <p align="center">
-  <img src="documentation/figures/memflow_instants.png" width="640" alt="MemFlow sur trois instants de la vidéo">
+  <img src="documentation/figures/MemFlow/MemFlow_frames_flow_heatmaps.png" width="640" alt="MemFlow sur trois instants de la vidéo">
 </p>
 
 - Sur notre vidéo, **5 itérations suffisent** : la correction passe sous 0,01 px en 6 itérations, et l'erreur photométrique est la même de 2 à 24 itérations. Chaque itération coûte environ 92 ms.
@@ -328,14 +419,23 @@ $$
 
 ## 6. Reproduire nos résultats
 
-Tous les tests ont été faits **en inférence seule** sur **Kaggle**, avec un **GPU Tesla T4**. Activez le GPU dans *Settings → Accelerator → GPU T4*, sinon le calcul se fait sur le processeur et devient très lent.
+Tous les tests ont été faits **en inférence seule**, avec un **GPU Tesla T4** : sur **Google Colab** pour RAFT et MemFlow, sur **Kaggle** pour FreeFlow. Sans GPU, le calcul se fait sur le processeur et devient très lent.
+
+**RAFT** (Google Colab) :
+
+1. Ouvrez [`notebooks/01_RAFT.ipynb`](notebooks/01_RAFT.ipynb) dans Colab et choisissez *Exécution → Modifier le type d'exécution → GPU T4*.
+2. Lancez toutes les cellules (*Exécution → Tout exécuter*). Le code officiel et les poids `raft-sintel` sont téléchargés automatiquement.
+3. À la première exécution, importez la vidéo [`vidéo de référence/video voiture 7s.mp4`](vidéo%20de%20référence/) quand le notebook la demande. Elle est ensuite réutilisée depuis le Drive.
+4. Les figures, la vidéo résultat et `results.json` sont enregistrés dans `MyDrive/flow_optique/raft/`. Les figures de notre exécution sont aussi dans [`documentation/figures/RAFT/`](documentation/figures/RAFT/).
+
+**FreeFlow** (Kaggle) : activez le GPU dans *Settings → Accelerator → GPU T4*, puis :
 
 1. Créez un notebook Kaggle et ajoutez la vidéo comme dataset (*Add Input*).
 2. Ouvrez le notebook du modèle, dans le dossier [`notebooks/`](notebooks/).
 3. Dans la cellule de réglages, laissez `VIDEO_PATH = ""` (le notebook prend le premier `.mp4` trouvé) ou donnez le chemin du fichier.
 4. Lancez toutes les cellules. Les figures et la vidéo résultat sont enregistrées dans `/kaggle/working/`.
 
-**FreeFlow** (code et poids officiels) :
+Code et poids officiels de FreeFlow :
 
 ```python
 !git clone -q https://github.com/msu-video-group/freeflow.git
@@ -351,7 +451,7 @@ with torch.inference_mode(), torch.autocast("cuda", dtype=torch.float16):
 
 On utilise `float16`, car la T4 n'a pas de `bfloat16` matériel.
 
-**RAFT** et **MemFlow** : code officiel des auteurs (voir [Références](#8-références)), avec les checkpoints `raft-sintel` et `MemFlowNet_sintel`.
+**MemFlow** : code officiel des auteurs (voir [Références](#8-références)), avec le checkpoint `MemFlowNet_sintel`.
 
 ---
 
@@ -361,15 +461,23 @@ On utilise `float16`, car la T4 n'a pas de `bfloat16` matériel.
 .
 ├── README.md
 ├── notebooks/
-│   ├── freeflow_inference.ipynb      # FreeFlow sur notre vidéo + Middlebury
-│   ├── raft_inference.ipynb          # à ajouter
-│   └── memflow_inference.ipynb       # à ajouter
-├── docs/
+│   ├── 01_RAFT.ipynb                 # RAFT sur notre vidéo + Middlebury (Colab)
+│   ├── 02_MemFlow.ipynb              # MemFlow sur notre vidéo + Middlebury (Colab)
+│   ├── 03_FreeFlow.ipynb             # FreeFlow sur notre vidéo + Middlebury (Kaggle)
+│   └── 03_FreeFlow_inference.ipynb
+├── vidéo de référence/
+│   └── video voiture 7s.mp4          # vidéo testée (576 × 1024, 30 fps, 7 s)
+├── docs/                             # à ajouter
 │   ├── presentation.pdf              # présentation finale (59 slides)
 │   └── figures_latex/                # sources LaTeX (TikZ) des schémas de FreeFlow
 └── documentation/
     ├── slides/                       # slides de la présentation, en images
-    └── figures/                      # figures de résultats
+    ├── figures/                      # figures de résultats
+    │   ├── RAFT/
+    │   ├── MemFlow/
+    │   └── FreeFlow/
+    ├── raft_result.mp4               # vidéo résultat RAFT (image | flux)
+    └── memflow_result.mp4            # vidéo résultat MemFlow
 ```
 
 Les schémas de FreeFlow (patchification, Win, Swin, Global, encodeur, décodeur, tête, tableaux) ont été dessinés en LaTeX/TikZ. Pour les recompiler : `pdflatex fichier.tex`, ou Overleaf.
