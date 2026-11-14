@@ -1,0 +1,48 @@
+% Étape 3 (1/2) : le bloc d'attention, en étapes (FreeFlow, éq. 3)
+% Compiler avec pdflatex (ou Overleaf).
+\documentclass[border=10pt,varwidth=700pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[scaled]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{sansmath}
+\sansmath
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+\definecolor{orange}{HTML}{FFD0BF}
+\definecolor{creme}{HTML}{FFF6EC}
+
+\newcommand{\num}[1]{\textbf{#1}}
+\renewcommand{\arraystretch}{2.1}
+\arrayrulecolor{orange}
+
+\begin{document}
+\fontsize{13}{16}\selectfont
+\begin{tabular}{>{\centering\arraybackslash}m{22pt} >{\raggedright\arraybackslash}m{95pt} >{\raggedright\arraybackslash}m{215pt} >{\centering\arraybackslash}m{62pt} >{\raggedright\arraybackslash}m{250pt}}
+\rowcolor{creme}
+ & \textbf{Étape} & \textbf{Formule} & \textbf{Taille} & \textbf{Ce que ça fait} \\
+\hline
+\num{1} & Normaliser & $\tilde{X} = \mathrm{Norm}(X_w)$ & $n \times D$ & met les valeurs à la même échelle \\
+\hline
+\num{2} & Projeter & $Q = \tilde{X} W_Q,\ \ K = \tilde{X} W_K,\ \ V = \tilde{X} W_V$ & $n \times D$ & $Q$ : ce que le patch cherche \newline $K$ : son étiquette \quad $V$ : son contenu \\
+\hline
+\num{3} & Scores & $S = Q K^{\top}$, \ \ $S[j,k] = q_j \cdot k_k$ & $n \times n$ & ressemblance entre les patchs $j$ et $k$ \\
+\hline
+\num{4} & Poids & $A = \mathrm{Softmax}\!\left(\dfrac{\log n}{\sqrt{64}}\, S\right)$ & $n \times n$ & chaque ligne devient des poids (somme = 1) \\
+\hline
+\num{5} & Mélange & $O = A\, V$, \ \ $o_j = \sum_k A[j,k]\, v_k$ & $n \times D$ & chaque patch récupère le contenu des patchs \newline qu'il regarde \\
+\hline
+\end{tabular}
+
+\vspace{10pt}
+\begin{minipage}{660pt}
+\fontsize{12}{15}\selectfont
+$n = N/16$ (Win, Swin) ou $N/4$ (Global) \qquad $W_Q, W_K, W_V$ : $D \times D$, appris \qquad $\sqrt{64}$ : taille d'une tête \\ $\log n$ : garde le Softmax net quand $n$ est grand
+
+\vspace{4pt}
+Entrée $X_w$ : $n \times D$ \ $\rightarrow$ \ Sortie $O$ : $n \times D$ (même taille) \ $\rightarrow$ têtes, résiduel et MLP (2/2)
+\end{minipage}
+\end{document}

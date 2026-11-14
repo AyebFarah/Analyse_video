@@ -1,0 +1,54 @@
+% Les quatre métriques du papier FreeFlow : version simple, rouge = erreurs, vert = pixels justes
+\documentclass[border=10pt,varwidth=860pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{hhline}
+\usepackage[table]{xcolor}
+\renewcommand{\arraystretch}{1.5}
+\setlength{\arrayrulewidth}{0.6pt}
+\definecolor{rougep}{HTML}{FAD4D4}
+\definecolor{vertp}{HTML}{D6EFD0}
+\newcommand{\ind}{\mathbf{1}}
+
+\begin{document}
+\fontsize{14}{17}\selectfont
+
+\noindent Pour chaque pixel $p$ : \quad $e_p = \big\| \hat{f}_p - f_p \big\|_2$ \quad = \ distance (en pixels) entre la flèche prédite $\hat{f}_p$ et la vraie flèche $f_p$. \quad $N$ = nombre de pixels.
+
+\vspace{12pt}
+\noindent
+\begin{tabular}{|>{\raggedright\arraybackslash}m{88pt}|>{\centering\arraybackslash}m{340pt}|>{\raggedright\arraybackslash}m{300pt}|}
+\hhline{|-|-|-|}
+\textbf{Métrique} & \textbf{Formule} & \textbf{Ce que ça mesure} \\
+\hhline{|-|-|-|}
+\rowcolor{rougep}
+\textbf{EPE} \newline Sintel &
+$\displaystyle \mathrm{EPE} = \frac{1}{N} \sum_{p} e_p$ &
+l'erreur moyenne, en pixels \\
+\hhline{|-|-|-|}
+\rowcolor{rougep}
+\textbf{1px} \newline Spring &
+$\displaystyle \mathrm{1px} = \frac{100}{N} \sum_{p} \ind\big[\, e_p > 1 \,\big]$ &
+le \% de pixels faux de plus de 1 pixel \\
+\hhline{|-|-|-|}
+\rowcolor{rougep}
+\textbf{Fl-all} \newline KITTI &
+$\displaystyle \mathrm{Fl\text{-}all} = \frac{100}{N} \sum_{p} \ind\big[\, e_p > 3 \ \text{et} \ e_p > 0{,}05\, \| f_p \|_2 \,\big]$ &
+le \% de pixels très faux \newline (plus de 3 pixels et plus de 5\,\% du vrai mouvement) \\
+\hhline{|-|-|-|}
+\rowcolor{vertp}
+\textbf{WAUC} \newline Spring &
+$\displaystyle A(x) = \frac{100}{N} \sum_{p} \ind\big[\, e_p \le x \,\big]$
+\par\vspace{6pt}
+$\displaystyle \mathrm{WAUC} = \frac{2}{5} \int_{0}^{5} A(x)\, \frac{5 - x}{5}\, dx$ &
+$A(x)$ : le \% de pixels justes à $x$ pixels près. \newline WAUC : la moyenne de $A(x)$ pour $x$ de 0 à 5 px ; être juste à 1 px compte plus que juste à 5 px \\
+\hhline{|-|-|-|}
+\end{tabular}
+
+\vspace{10pt}
+\noindent\colorbox{rougep}{\strut\ Rouge\ } on compte les erreurs : \textbf{plus petit = meilleur} \qquad
+\colorbox{vertp}{\strut\ Vert\ } on compte les pixels justes : \textbf{plus grand = meilleur}
+\end{document}

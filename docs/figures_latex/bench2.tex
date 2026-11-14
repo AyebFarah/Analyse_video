@@ -1,0 +1,50 @@
+% Benchmark Spring 1080p : précision et coût : tableau simple, police Times
+\documentclass[border=10pt,varwidth=900pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage{array}
+\usepackage{hhline}
+\usepackage[table]{xcolor}
+\renewcommand{\arraystretch}{1.45}
+\setlength{\arrayrulewidth}{0.6pt}
+\definecolor{vertp}{HTML}{D6EFD0}
+\definecolor{grisp}{HTML}{EFEFEF}
+\newcolumntype{C}{>{\centering\arraybackslash}m{68pt}}
+
+\begin{document}
+\fontsize{14}{17}\selectfont
+\noindent
+\begin{tabular}{|>{\raggedright\arraybackslash}m{160pt}|C|C|C||C|C|C|C|}
+\hhline{|-|-|-|-||-|-|-|-|}
+ & \multicolumn{3}{c||}{\textbf{Coût} (plus petit = mieux)} & \multicolumn{4}{c|}{\textbf{Précision}} \\
+\hhline{|~|-|-|-||-|-|-|-|}
+\textbf{Méthode} & \textbf{Mémoire} \newline Go & \textbf{Temps} \newline ms & \textbf{Paramètres} \newline millions & \textbf{1px} $\downarrow$ \newline \% & \textbf{EPE} $\downarrow$ \newline px & \textbf{Fl} $\downarrow$ \newline \% & \textbf{WAUC} $\uparrow$ \newline \% \\
+\hhline{|-|-|-|-||-|-|-|-|}
+\rowcolor{grisp}\multicolumn{8}{|l|}{\textit{Méthodes qui utilisent plusieurs images}} \\
+\hhline{|-|-|-|-||-|-|-|-|}
+MemFlow & 8,06 & 754 & 6,27 & 4,482 & 0,471 & 1,416 & 93,855 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+MEMFOF & 1,90 & 262 & 75,78 & 3,289 & 0,355 & 1,238 & 95,186 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+\rowcolor{grisp}\multicolumn{8}{|l|}{\textit{Méthodes qui utilisent 2 images (comme FreeFlow)}} \\
+\hhline{|-|-|-|-||-|-|-|-|}
+RAFT$^{*}$ & 7,97 & 406 & \textbf{5,26} & 6,790 & 1,476 & 3,198 & 90,920 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+CroCo-Flow & 2,73 & 3\,266 & 447,47 & 4,565 & 0,498 & 1,508 & 93,660 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+WAFT-DAv2-a2 & 20,58 & 489 & 56,93 & 3,298 & 0,304 & 1,197 & 94,990 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+WAFT-DINOv3-a2 & 18,96 & 408 & 56,47 & \textbf{3,182} & 0,325 & 1,246 & 95,051 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+FreeFlow-S & \textbf{1,02} & \textbf{144} & 34,58 & 5,087 & 0,533 & 1,452 & 90,196 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+FreeFlow-M & 1,66 & 325 & 102,46 & 3,392 & 0,346 & 1,171 & 94,919 \\
+\hhline{|-|-|-|-||-|-|-|-|}
+\rowcolor{vertp}\textbf{FreeFlow-L} & 2,58 & 607 & 230,72 & 3,192 & \textbf{0,278} & \textbf{1,048} & \textbf{95,235} \\
+\hhline{|-|-|-|-||-|-|-|-|}
+\end{tabular}
+
+\vspace{8pt}
+\noindent En gras : le meilleur de chaque colonne. \quad Mémoire et temps mesurés en 1080p sur une RTX 3090. \quad $^{*}$ voir le papier. \quad Source : Bargatin et al.
+\end{document}
