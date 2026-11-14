@@ -5,7 +5,7 @@
 Projet d'analyse vidéo réalisé par **Hanine BEN AMOR**, **Farah AYEB** et **Meriem MELKI**.
 
 <p align="center">
-  <img src="assets/slides/00_titre.png" width="720" alt="Page de titre de la présentation">
+  <img src="documentation/slides/00_titre.png" width="720" alt="Page de titre de la présentation">
 </p>
 
 On étudie trois modèles qui estiment le flux optique, c'est-à-dire le déplacement de chaque pixel entre deux images d'une vidéo :
@@ -41,8 +41,8 @@ Le flux optique associe à chaque pixel un vecteur de déplacement **(u, v)** : 
 - **Codage couleur** (Middlebury) : la teinte donne la direction, l'intensité la vitesse, et le blanc veut dire « immobile ».
 
 <p align="center">
-  <img src="assets/slides/01_flux_optique.png" width="49%" alt="Le flux optique">
-  <img src="assets/slides/02_metriques.png" width="49%" alt="Les métriques">
+  <img src="documentation/slides/01_flux_optique.png" width="49%" alt="Le flux optique">
+  <img src="documentation/slides/02_metriques.png" width="49%" alt="Les métriques">
 </p>
 
 | Métrique | Définition | Sens |
@@ -67,14 +67,14 @@ RAFT a trois blocs :
 3. **La mise à jour itérative** part d'un flux nul et le corrige 12 à 32 fois, avec le même petit réseau récurrent (ConvGRU).
 
 <p align="center">
-  <img src="assets/slides/10_raft_architecture.png" width="720" alt="Architecture de RAFT">
+  <img src="documentation/slides/10_raft_architecture.png" width="720" alt="Architecture de RAFT">
 </p>
 
 <details>
 <summary><b>Voir le détail des blocs (corrélation, ConvGRU)</b></summary>
 <p align="center">
-  <img src="assets/slides/11_raft_correlation.png" width="49%" alt="Volume de corrélation">
-  <img src="assets/slides/12_raft_gru.png" width="49%" alt="Mise à jour récurrente">
+  <img src="documentation/slides/11_raft_correlation.png" width="49%" alt="Volume de corrélation">
+  <img src="documentation/slides/12_raft_gru.png" width="49%" alt="Mise à jour récurrente">
 </p>
 </details>
 
@@ -90,7 +90,7 @@ RAFT a trois blocs :
 | Middlebury | EPE 0,28 px · Fl-all 0,94 % |
 
 <p align="center">
-  <img src="assets/figures/raft_resultat.png" width="640" alt="Flux de RAFT sur notre vidéo">
+  <img src="documentation/figures/raft_resultat.png" width="640" alt="Flux de RAFT sur notre vidéo">
 </p>
 
 - La voiture est segmentée proprement : un seul mouvement vers le haut (violet), et le fond reste immobile (blanc).
@@ -99,8 +99,8 @@ RAFT a trois blocs :
 - 45 % de la mémoire sert à la matrice de corrélation : doubler la résolution multiplie ce coût par environ 16.
 
 <p align="center">
-  <img src="assets/slides/14_raft_compromis.png" width="49%" alt="Compromis vitesse / qualité">
-  <img src="assets/slides/15_raft_quand.png" width="49%" alt="Quand utiliser RAFT">
+  <img src="documentation/slides/14_raft_compromis.png" width="49%" alt="Compromis vitesse / qualité">
+  <img src="documentation/slides/15_raft_quand.png" width="49%" alt="Quand utiliser RAFT">
 </p>
 
 ---
@@ -115,7 +115,7 @@ MemFlow reprend RAFT et ajoute une **mémoire** : une région qui ressemble à u
 3. **La mise à jour** raffine le flux en 15 itérations, en combinant le mouvement actuel et la mémoire, puis met à jour la mémoire.
 
 <p align="center">
-  <img src="assets/slides/20_memflow_architecture.png" width="720" alt="Architecture de MemFlow">
+  <img src="documentation/slides/20_memflow_architecture.png" width="720" alt="Architecture de MemFlow">
 </p>
 
 **La formule de la mémoire** : chaque pixel actuel (question q) cherche les régions qui lui ressemblent, dans l'image actuelle et dans le passé (clés k), et récupère leurs mouvements (valeurs v) :
@@ -129,8 +129,8 @@ f_{am} = f_m + \alpha \cdot \mathrm{Softmax}\!\left(\frac{\log_{n_{avg}}(L + HW)
 $$
 
 <p align="center">
-  <img src="assets/slides/21_memflow_memoire.png" width="49%" alt="La mémoire de MemFlow">
-  <img src="assets/slides/22_memflow_memoire_attention.png" width="49%" alt="Attention de la mémoire">
+  <img src="documentation/slides/21_memflow_memoire.png" width="49%" alt="La mémoire de MemFlow">
+  <img src="documentation/slides/22_memflow_memoire_attention.png" width="49%" alt="Attention de la mémoire">
 </p>
 
 ### MemFlow sur notre vidéo
@@ -145,15 +145,15 @@ $$
 | Middlebury | EPE 0,214 px · Fl-all 0,518 % |
 
 <p align="center">
-  <img src="assets/figures/memflow_instants.png" width="640" alt="MemFlow sur trois instants de la vidéo">
+  <img src="documentation/figures/memflow_instants.png" width="640" alt="MemFlow sur trois instants de la vidéo">
 </p>
 
 - Sur notre vidéo, **5 itérations suffisent** : la correction passe sous 0,01 px en 6 itérations, et l'erreur photométrique est la même de 2 à 24 itérations. Chaque itération coûte environ 92 ms.
 - Sur Middlebury, le gain de la mémoire est négligeable (EPE 0,214 avec, 0,217 sans) : il n'y a que deux images par séquence, donc presque pas d'historique.
 
 <p align="center">
-  <img src="assets/slides/24_memflow_iterations.png" width="49%" alt="Nombre d'itérations">
-  <img src="assets/slides/26_memflow_quand.png" width="49%" alt="Quand utiliser MemFlow">
+  <img src="documentation/slides/24_memflow_iterations.png" width="49%" alt="Nombre d'itérations">
+  <img src="documentation/slides/26_memflow_quand.png" width="49%" alt="Quand utiliser MemFlow">
 </p>
 
 ---
@@ -167,7 +167,7 @@ $$
 RAFT, MemFlow et les autres ajoutent des modules inventés pour le flux : corrélation, warping, pyramide, itérations, upsampling convexe. FreeFlow les enlève tous : c'est un transformer encodeur–décodeur simple, **en une seule passe**.
 
 <p align="center">
-  <img src="assets/slides/30_freeflow_contexte.png" width="720" alt="Les biais inductifs du flux optique">
+  <img src="documentation/slides/30_freeflow_contexte.png" width="720" alt="Les biais inductifs du flux optique">
 </p>
 
 ### L'architecture, matrice par matrice
@@ -179,7 +179,7 @@ N = \frac{H}{8} \cdot \frac{W}{8}, \qquad D \in \lbrace 256,\ 384,\ 512 \rbrace\
 $$
 
 <p align="center">
-  <img src="assets/figures/freeflow_architecture_papier.png" width="720" alt="Architecture de FreeFlow (figure du papier)">
+  <img src="documentation/figures/FreeFlow/freeflow_architecture_papier.png" width="720" alt="Architecture de FreeFlow (figure du papier)">
   <br><sub>Figure du papier (Bargatin et al., 2026).</sub>
 </p>
 
@@ -204,24 +204,24 @@ $$
 <summary><b>Les 8 étapes en images</b></summary>
 
 <p align="center">
-  <img src="assets/slides/31_freeflow_chemin.png" width="49%" alt="Le chemin de la matrice">
-  <img src="assets/slides/32_freeflow_patchs.png" width="49%" alt="Patchification">
+  <img src="documentation/slides/31_freeflow_chemin.png" width="49%" alt="Le chemin de la matrice">
+  <img src="documentation/slides/32_freeflow_patchs.png" width="49%" alt="Patchification">
 </p>
 <p align="center">
-  <img src="assets/slides/33_freeflow_win.png" width="49%" alt="Win">
-  <img src="assets/slides/34_freeflow_bloc_1.png" width="49%" alt="Le bloc (1/2)">
+  <img src="documentation/slides/33_freeflow_win.png" width="49%" alt="Win">
+  <img src="documentation/slides/34_freeflow_bloc_1.png" width="49%" alt="Le bloc (1/2)">
 </p>
 <p align="center">
-  <img src="assets/slides/35_freeflow_bloc_2.png" width="49%" alt="Le bloc (2/2)">
-  <img src="assets/slides/36_freeflow_swin.png" width="49%" alt="Swin">
+  <img src="documentation/slides/35_freeflow_bloc_2.png" width="49%" alt="Le bloc (2/2)">
+  <img src="documentation/slides/36_freeflow_swin.png" width="49%" alt="Swin">
 </p>
 <p align="center">
-  <img src="assets/slides/37_freeflow_global.png" width="49%" alt="Global">
-  <img src="assets/slides/38_freeflow_encodeur.png" width="49%" alt="Encodeur complet">
+  <img src="documentation/slides/37_freeflow_global.png" width="49%" alt="Global">
+  <img src="documentation/slides/38_freeflow_encodeur.png" width="49%" alt="Encodeur complet">
 </p>
 <p align="center">
-  <img src="assets/slides/39_freeflow_decodeur.png" width="49%" alt="Décodeur">
-  <img src="assets/slides/40_freeflow_tete.png" width="49%" alt="Tête de flux">
+  <img src="documentation/slides/39_freeflow_decodeur.png" width="49%" alt="Décodeur">
+  <img src="documentation/slides/40_freeflow_tete.png" width="49%" alt="Tête de flux">
 </p>
 </details>
 
@@ -231,8 +231,8 @@ $$
 2. **Fine-tuning** sur des données où le vrai flux est connu : d'abord un mélange de 5 datasets (TartanAir, FlyingThings3D, Sintel, KITTI, HD1K), puis une version par benchmark (Sintel, KITTI, Spring).
 
 <p align="center">
-  <img src="assets/slides/41_freeflow_entrainement.png" width="49%" alt="Entraînement de FreeFlow">
-  <img src="assets/slides/42_freeflow_datasets.png" width="49%" alt="Datasets de FreeFlow">
+  <img src="documentation/slides/41_freeflow_entrainement.png" width="49%" alt="Entraînement de FreeFlow">
+  <img src="documentation/slides/42_freeflow_datasets.png" width="49%" alt="Datasets de FreeFlow">
 </p>
 
 ### Résultats publiés
@@ -242,12 +242,12 @@ $$
 - **Spring 1080p** : 1er en EPE (0,278), Fl (1,048) et WAUC (95,235), avec **8 fois moins de mémoire** que WAFT-DAv2 (2,58 Go contre 20,58 Go).
 
 <p align="center">
-  <img src="assets/slides/44_freeflow_sintel_kitti.png" width="49%" alt="Sintel et KITTI">
-  <img src="assets/slides/45_freeflow_spring.png" width="49%" alt="Spring 1080p">
+  <img src="documentation/slides/44_freeflow_sintel_kitti.png" width="49%" alt="Sintel et KITTI">
+  <img src="documentation/slides/45_freeflow_spring.png" width="49%" alt="Spring 1080p">
 </p>
 
 <p align="center">
-  <img src="assets/figures/freeflow_carte_erreur_papier.png" width="720" alt="Carte d'erreur sur Spring (figure du papier)">
+  <img src="documentation/figures/FreeFlow/freeflow_carte_erreur_papier.png" width="720" alt="Carte d'erreur sur Spring (figure du papier)">
   <br><sub>Carte d'erreur sur Spring (figure du papier) : bleu = presque parfait, rouge = très faux.</sub>
 </p>
 
@@ -265,7 +265,7 @@ $$
 | Middlebury | EPE 0,308 px · Fl-all 1,12 % |
 
 <p align="center">
-  <img src="assets/figures/freeflow_resultat.png" width="820" alt="Flux de FreeFlow sur notre vidéo">
+  <img src="documentation/figures/FreeFlow/freeflow_resultat.png" width="820" alt="Flux de FreeFlow sur notre vidéo">
 </p>
 
 - Le fond est blanc dans le flux et noir dans la magnitude : il ne bouge pas.
@@ -273,7 +273,7 @@ $$
 - Exemple : le pixel (360, 568) a u = 0,4 et v = −5,5. Il se retrouve en (360, 563) dans l'image suivante.
 
 <p align="center">
-  <img src="assets/figures/freeflow_courbes.png" width="820" alt="Courbes au fil de la vidéo">
+  <img src="documentation/figures/FreeFlow/freeflow_courbes.png" width="820" alt="Courbes au fil de la vidéo">
 </p>
 
 - **Temps** : il augmente un peu au fil de la vidéo (de 530 à 600 ms), alors que le calcul est toujours le même : c'est le GPU qui chauffe.
@@ -281,12 +281,12 @@ $$
 - **Erreur photométrique** : la courbe avec FreeFlow (orange) reste presque toujours sous la courbe sans flux (bleu). Les pics correspondent aux moments rapides : flou de mouvement et zones qui apparaissent derrière la voiture.
 
 <p align="center">
-  <img src="assets/figures/freeflow_video_extrait.png" width="420" alt="Extrait de la vidéo résultat">
+  <img src="documentation/figures/FreeFlow/freeflow_video_extrait.png" width="420" alt="Extrait de la vidéo résultat">
   <br><sub>Extrait de la vidéo résultat : à gauche l'image, à droite le flux.</sub>
 </p>
 
 <p align="center">
-  <img src="assets/slides/61_freeflow_quand.png" width="720" alt="Quand utiliser FreeFlow">
+  <img src="documentation/slides/61_freeflow_quand.png" width="720" alt="Quand utiliser FreeFlow">
 </p>
 
 ---
@@ -321,7 +321,7 @@ $$
 - **Le choix dépend du besoin** : RAFT pour un modèle léger et facile à réentraîner, MemFlow pour une vidéo continue (cohérence dans le temps), FreeFlow pour la haute résolution, les détails fins et une faible mémoire GPU.
 
 <p align="center">
-  <img src="assets/slides/60_comparaison.png" width="720" alt="Comparaison RAFT, MemFlow, FreeFlow">
+  <img src="documentation/slides/60_comparaison.png" width="720" alt="Comparaison RAFT, MemFlow, FreeFlow">
 </p>
 
 ---
@@ -367,7 +367,7 @@ On utilise `float16`, car la T4 n'a pas de `bfloat16` matériel.
 ├── docs/
 │   ├── presentation.pdf              # présentation finale (59 slides)
 │   └── figures_latex/                # sources LaTeX (TikZ) des schémas de FreeFlow
-└── assets/
+└── documentation/
     ├── slides/                       # slides de la présentation, en images
     └── figures/                      # figures de résultats
 ```
