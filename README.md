@@ -467,9 +467,6 @@ On utilise `float16`, car la T4 n'a pas de `bfloat16` matériel.
 │   └── 03_FreeFlow_inference.ipynb
 ├── vidéo de référence/
 │   └── video voiture 7s.mp4          # vidéo testée (576 × 1024, 30 fps, 7 s)
-├── docs/                             # à ajouter
-│   ├── presentation.pdf              # présentation finale (59 slides)
-│   └── figures_latex/                # sources LaTeX (TikZ) des schémas de FreeFlow
 └── documentation/
     ├── slides/                       # slides de la présentation, en images
     ├── figures/                      # figures de résultats
@@ -479,8 +476,6 @@ On utilise `float16`, car la T4 n'a pas de `bfloat16` matériel.
     ├── raft_result.mp4               # vidéo résultat RAFT (image | flux)
     └── memflow_result.mp4            # vidéo résultat MemFlow
 ```
-
-Les schémas de FreeFlow (patchification, Win, Swin, Global, encodeur, décodeur, tête, tableaux) ont été dessinés en LaTeX/TikZ. Pour les recompiler : `pdflatex fichier.tex`, ou Overleaf.
 
 ---
 
